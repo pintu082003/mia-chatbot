@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>UKLifestyle Chatbot</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #ece5dd;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .chat-container {
+            width: 400px;
+            height: 600px;
+            background: white;
+            display: flex;
+            flex-direction: column;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+
+        .chat-header {
+            background: #075e54;
+            color: white;
+            padding: 15px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .chat-box {
+            flex: 1;
+            padding: 10px;
+            overflow-y: auto;
+        }
+
+        .message {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 10px;
+            max-width: 75%;
+            word-wrap: break-word;
+        }
+
+        .user {
+            background: #dcf8c6;
+            align-self: flex-end;
+        }
+
+        .bot {
+            background: #f1f0f0;
+            align-self: flex-start;
+        }
+
+        .chat-input {
+            display: flex;
+            padding: 10px;
+            background: #f0f0f0;
+        }
+
+        .chat-input input {
+            flex: 1;
+            padding: 10px;
+            border-radius: 20px;
+            border: none;
+            outline: none;
+        }
+
+        .chat-input button {
+            margin-left: 10px;
+            padding: 10px 15px;
+            border: none;
+            background: #25d366;
+            color: white;
+            border-radius: 20px;
+            cursor: pointer;
+        }
+
+        .chat-input button:hover {
+            background: #1ebc57;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="chat-container">
+    <div class="chat-header">
+        MIA CHATBOT 🤖
+    </div>
+
+    <div id="chatBox" class="chat-box"></div>
+
+    <div class="chat-input">
+        <input type="text" id="messageInput" placeholder="Type your message...">
+        <button onclick="sendMessage()">Send</button>
+    </div>
+</div>
+
+<script>
+function appendMessage(text, sender, buttons=[]) {
+    const chatBox = document.getElementById("chatBox");
+
+    const msg = document.createElement("div");
+    msg.classList.add("message", sender);
+    msg.innerText = text;
+    chatBox.appendChild(msg);
+
+    if (buttons.length > 0) {
+        const btnContainer = document.createElement("div");
+        btnContainer.style.marginTop = "8px";
+
+        buttons.forEach(btn => {
+            const button = document.createElement("button");
+            button.innerText = btn.text;
+            button.style.margin = "5px";
+            button.style.padding = "6px 12px";
+            button.style.border = "none";
+            button.style.borderRadius = "15px";
+            button.style.backgroundColor = "#128C7E";
+            button.style.color = "white";
+            button.style.cursor = "pointer";
+
+            button.onclick = () => {
+                sendMessage(btn.value);
+            };
+
+            btnContainer.appendChild(button);
+        });
+
+        chatBox.appendChild(btnContainer);
+    }
+
+    chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+function sendMessage(customMessage=null) {
+    const input = document.getElementById("messageInput");
+    const message = customMessage || input.value.trim();
+
+    if (!message) return;
+
+    appendMessage(message, "user");
+
+    fetch("/chat", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ message: message })
+    })
+    .then(response => response.json())
+    .then(data => {
+
+        // Show normal bot reply + buttons
+        appendMessage(data.reply, "bot", data.buttons || []);
+
+        const chatBox = document.getElementById("chatBox");
+
+        // PRODUCT CARDS
+        if (data.products) {
+            data.products.forEach(product => {
+                const card = document.createElement("div");
+                card.style.border = "1px solid #ddd";
+                card.style.borderRadius = "10px";
+                card.style.padding = "10px";
+                card.style.margin = "10px 0";
+                card.style.backgroundColor = "#fff";
+
+                card.innerHTML = `
+                    <img src="${product.image}" width="100%" style="border-radius: 10px;">
+                    <h4>${product.name}</h4>
+                    <p><strong>${product.price}</strong></p>
+                    <button onclick="sendMessage('add_${product.id}')" 
+                    style="padding:5px 10px;border:none;background:#25d366;color:white;border-radius:5px;cursor:pointer;">
+                    Buy Now
+                    </button>
+                `;
+
+                chatBox.appendChild(card);
+            });
+        }
+
+        //  STORE LOCATOR CARDS
+        if (data.stores) {
+            data.stores.forEach(store => {
+                const card = document.createElement("div");
+                card.style.border = "1px solid #ddd";
+                card.style.borderRadius = "10px";
+                card.style.padding = "10px";
+                card.style.margin = "10px 0";
+                card.style.backgroundColor = "#fff";
+
+                card.innerHTML = `
+                    <h4>${store.name}</h4>
+                    <p>${store.address}</p>
+                    <a href="${store.map_link}" target="_blank">
+                        <button style="padding:5px 10px;border:none;background:#075e54;color:white;border-radius:5px;cursor:pointer;">
+                            View on Map
+                        </button>
+                    </a>
+                `;
+
+                chatBox.appendChild(card);
+            });
+        }
+
+        chatBox.scrollTop = chatBox.scrollHeight;
+    });
+
+    input.value = "";
+}
+</script>
+</body>
+</html>
